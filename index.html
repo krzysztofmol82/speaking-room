@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Speaking Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen studio app — header + tabs, conversation column with a recording dock pinned to the bottom. */
+:root {
+  --bg: #EEF1F4;
+  --surface: #FFFFFF;
+  --surface-2: #E3E8EE;
+  --ink: #131A24;
+  --muted: #5C6675;
+  --line: #D3DAE3;
+  --accent: #1F4FD8;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCE5FB;
+  --rec: #E2452F;
+  --good: #18794E;
+  --good-soft: #DDF3E6;
+  --bad: #B4231B;
+  --bad-soft: #FBE3E0;
+  --tip: #8A5A00;
+  --tip-soft: #FBEFD5;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E131A; --surface: #161D27; --surface-2: #1E2733; --ink: #E7ECF2; --muted: #93A0B2; --line: #2A3543;
+    --accent: #7B9BFF; --accent-ink: #0B1020; --accent-soft: #1D2A4D; --rec: #FF6B55;
+    --good: #5FD39A; --good-soft: #12301F; --bad: #FF8A80; --bad-soft: #3A1714; --tip: #F3C766; --tip-soft: #33280F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E131A; --surface: #161D27; --surface-2: #1E2733; --ink: #E7ECF2; --muted: #93A0B2; --line: #2A3543;
+  --accent: #7B9BFF; --accent-ink: #0B1020; --accent-soft: #1D2A4D; --rec: #FF6B55;
+  --good: #5FD39A; --good-soft: #12301F; --bad: #FF8A80; --bad-soft: #3A1714; --tip: #F3C766; --tip-soft: #33280F;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); height: 100%; box-sizing: border-box; }
+body { font-size: 14px; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { height: 100%; display: flex; flex-direction: column; max-width: 920px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px 10px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; margin: 0; }
+.brand h1 span { color: var(--accent); }
+.brand small { font-family: var(--f-mono); font-size: .72rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+nav.tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 999px; }
+nav.tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 999px; font-weight: 500; color: var(--muted); }
+nav.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.scroll { overflow-y: auto; flex: 1; min-height: 0; }
+
+/* Conversation */
+.sessionbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-block: 6px 10px; border-bottom: 1px solid var(--line); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.chip.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.sessionbar .spacer { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 14px; border-radius: 999px; font-weight: 500; font-size: .88rem; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .5; cursor: default; }
+select.sel { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 10px; font-size: .8rem; }
+
+.thread { display: flex; flex-direction: column; gap: 14px; padding-block: 18px; }
+.msg { display: flex; flex-direction: column; gap: 6px; max-width: 82%; min-width: 0; }
+.msg.tutor { align-self: flex-start; }
+.msg.me { align-self: flex-end; align-items: flex-end; }
+.who { font-family: var(--f-mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.bubble { padding: 11px 15px; border-radius: 18px; font-size: 1.02rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tutor .bubble { background: var(--surface); border: 1px solid var(--line); border-top-left-radius: 6px; }
+.me .bubble { background: var(--accent); color: var(--accent-ink); border-top-right-radius: 6px; }
+.bubble.thinking { color: var(--muted); font-style: italic; }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.tools button { border: 0; background: transparent; color: var(--muted); font-size: .8rem; padding: 2px 6px; border-radius: 6px; }
+.tools button:hover { background: var(--surface-2); color: var(--ink); }
+.pl { font-size: .9rem; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px; }
+
+.feedback { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; font-size: .9rem; display: flex; flex-direction: column; gap: 8px; max-width: 100%; text-align: left; }
+.feedback .label { font-family: var(--f-mono); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.corr { display: flex; flex-direction: column; gap: 2px; }
+.corr .pair { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.corr del { background: var(--bad-soft); color: var(--bad); text-decoration-thickness: 1.5px; padding: 0 4px; border-radius: 4px; }
+.corr ins { background: var(--good-soft); color: var(--good); text-decoration: none; padding: 0 4px; border-radius: 4px; font-weight: 600; }
+.corr .why { color: var(--muted); font-size: .84rem; }
+.better { color: var(--good); }
+.newword { background: var(--tip-soft); color: var(--ink); border-radius: 10px; padding: 6px 10px; }
+.newword b { color: var(--tip); }
+.okline { color: var(--good); font-weight: 500; }
+
+.hints { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px dashed var(--line); border-radius: var(--r); background: var(--surface); }
+.hints button { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 7px 10px; }
+.hints button:hover { border-color: var(--accent); }
+
+.dock { border-top: 1px solid var(--line); padding-block: 10px calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; }
+.partial { font-size: .9rem; color: var(--muted); font-style: italic; min-height: 1.2em; }
+.composer { display: flex; gap: 10px; align-items: flex-end; }
+.composer textarea { flex: 1; min-width: 0; resize: none; border: 1px solid var(--line); background: var(--surface); border-radius: 18px; padding: 11px 14px; min-height: 46px; max-height: 140px; line-height: 1.4; }
+.mic { flex: none; width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg); display: grid; place-items: center; position: relative; }
+.mic svg { width: 24px; height: 24px; }
+.mic.on { background: var(--rec); color: #fff; }
+.mic.on::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--rec); animation: pulse 1.4s ease-out infinite; }
+@keyframes pulse { from { transform: scale(.9); opacity: .9 } to { transform: scale(1.25); opacity: 0 } }
+.send { flex: none; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+.send svg { width: 20px; height: 20px; }
+.dockrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .82rem; color: var(--muted); }
+.dockrow label { display: inline-flex; gap: 5px; align-items: center; }
+.note { font-size: .82rem; color: var(--muted); }
+.err { color: var(--bad); }
+
+/* Scenarios */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding-block: 16px; }
+.card { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.card:hover { border-color: var(--accent); }
+.card .k { font-family: var(--f-mono); font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.card h3 { font-family: var(--f-display); font-weight: 600; font-size: 1.1rem; margin: 0; letter-spacing: -0.01em; }
+.card p { margin: 0; color: var(--muted); font-size: .88rem; }
+.card.current { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.section-h { font-family: var(--f-display); font-size: 1.15rem; margin: 18px 0 0; }
+.custom { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+.custom textarea { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); padding: 8px 10px; min-height: 64px; resize: vertical; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin-top: 10px; }
+.settings label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); }
+.settings select, .settings input[type=range] { width: 100%; }
+.settings select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 8px; color: var(--ink); font-size: .9rem; }
+
+/* Progress */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding-block: 16px 4px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
+.stat .n { font-family: var(--f-display); font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat .l { font-size: .78rem; color: var(--muted); }
+.list { display: flex; flex-direction: column; gap: 8px; padding-block: 8px 24px; }
+.row { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.row .head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.row .head b { font-family: var(--f-display); font-weight: 600; }
+.row .meta { font-family: var(--f-mono); font-size: .74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bars { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; font-size: .8rem; }
+.bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.words { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; padding-block: 8px 24px; }
+.word { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.word .w { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+.word .w b { font-weight: 600; overflow-wrap: anywhere; }
+.word .ex { font-size: .84rem; color: var(--muted); font-style: italic; }
+.iconbtn { border: 0; background: transparent; color: var(--muted); padding: 2px 6px; border-radius: 6px; font-size: .78rem; }
+.iconbtn:hover { background: var(--surface-2); color: var(--ink); }
+details.sess summary { cursor: pointer; color: var(--accent); font-size: .85rem; }
+.empty { color: var(--muted); padding: 18px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r); }
+
+/* Summary sheet */
+.sheet-bg { position: fixed; inset: 0; background: rgba(8,12,20,.5); display: grid; place-items: end center; z-index: 20; padding: 16px; }
+.sheet { background: var(--bg); width: min(640px, 100%); max-height: 88vh; overflow-y: auto; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--line); }
+.sheet h2 { font-family: var(--f-display); margin: 0; font-size: 1.4rem; }
+.scores { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.score { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
+.score .n { font-family: var(--f-display); font-size: 1.8rem; font-weight: 700; }
+.score .n small { font-size: .9rem; color: var(--muted); font-weight: 500; }
+.score .l { font-size: .76rem; color: var(--muted); }
+.sheet ul { margin: 0; padding-left: 20px; }
+.sheet .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+@media (max-width: 560px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .msg { max-width: 92%; }
+  nav.tabs button { padding: 6px 10px; font-size: .88rem; }
+  .brand small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .mic.on::after { animation: none; } }
+.keyrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.keyrow input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 8px; }
+.banner { background: var(--tip-soft); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; margin-top: 10px; font-size: .9rem; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><h1>Speaking<span>Room</span></h1><small>prywatny trener angielskiego</small></div>
+    <nav class="tabs" role="tablist">
+      <button id="tab-talk" role="tab" aria-selected="true" data-view="talk">Rozmowa</button>
+      <button id="tab-scen" role="tab" aria-selected="false" data-view="scen">Scenariusze</button>
+      <button id="tab-prog" role="tab" aria-selected="false" data-view="prog">Postępy</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TALK -->
+    <section class="view" id="view-talk">
+      <div class="sessionbar">
+        <span class="chip" id="scenChip">Swobodna rozmowa</span>
+        <select class="sel" id="levelSel" aria-label="Poziom">
+          <option>A2</option><option>B1</option><option selected>B2</option><option>C1</option><option>C2</option>
+        </select>
+        <span class="chip mono" id="timer">00:00</span>
+        <span class="chip mono" id="wordCount">0 słów</span>
+        <span class="spacer"></span>
+        <button class="btn ghost" id="restartBtn">Od nowa</button>
+        <button class="btn primary" id="endBtn">Zakończ i oceń</button>
+      </div>
+      <div class="scroll" id="threadScroll"><div class="thread" id="thread"></div></div>
+      <div class="dock">
+        <div class="partial" id="partial"></div>
+        <div class="composer">
+          <button class="mic" id="micBtn" aria-label="Mów" title="Kliknij i mów po angielsku. Kliknij ponownie, by wysłać.">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          </button>
+          <textarea id="input" rows="1" placeholder="Powiedz coś (mikrofon) albo wpisz po angielsku…"></textarea>
+          <button class="send" id="sendBtn" aria-label="Wyślij">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="dockrow">
+          <button class="btn ghost" id="hintBtn">💡 Nie wiem, co powiedzieć</button>
+          <label><input type="checkbox" id="autoSpeak" checked> czytaj odpowiedzi na głos</label>
+          <label><input type="checkbox" id="autoSend" checked> wysyłaj po zakończeniu mówienia</label>
+          <span id="status" class="note"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCENARIOS -->
+    <section class="view" id="view-scen" hidden>
+      <div class="scroll">
+        <h2 class="section-h">Wybierz sytuację</h2>
+        <div class="grid" id="scenGrid"></div>
+        <div class="custom">
+          <div class="who">Własny scenariusz</div>
+          <textarea id="customScen" placeholder="Np. „Prezentuję wyniki due diligence zarządowi, który zadaje trudne pytania”"></textarea>
+          <div><button class="btn primary" id="customGo">Zacznij ten scenariusz</button></div>
+        </div>
+        <h2 class="section-h">Połączenie z Claude</h2>
+        <div class="settings">
+          <label for="apiKey" style="grid-column: 1 / -1">Klucz Anthropic API (zapisany tylko w tej przeglądarce)
+            <span class="keyrow"><input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off"><button class="btn" id="saveKey">Zapisz klucz</button><button class="btn ghost" id="clearKey">Usuń</button></span>
+          </label>
+          <label for="modelFast">Model do rozmowy (szybki)
+            <select id="modelFast">
+              <option value="claude-haiku-5-5">Claude Haiku 5.5 (najszybszy)</option>
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+            </select>
+          </label>
+          <label for="modelSmart">Model do oceny sesji
+            <select id="modelSmart">
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+              <option value="claude-opus-5-5">Claude Opus 5.5 (najdokładniejszy)</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5</option>
+            </select>
+          </label>
+        </div>
+        <h2 class="section-h">Ustawienia lektora</h2>
+        <div class="settings">
+          <label for="voiceSel">Głos lektora
+            <select id="voiceSel"><option value="">Domyślny angielski</option></select>
+          </label>
+          <label for="rateSel">Tempo mowy: <span id="rateVal">1.0×</span>
+            <input type="range" id="rateSel" min="0.7" max="1.3" step="0.05" value="1">
+          </label>
+          <label for="corrSel">Poprawianie błędów
+            <select id="corrSel">
+              <option value="all">Każdy błąd (dokładnie)</option>
+              <option value="main" selected>Tylko ważne błędy</option>
+              <option value="off">Bez poprawek (płynność)</option>
+            </select>
+          </label>
+          <label for="aboutMe">O mnie (tutor to uwzględni)
+            <select id="aboutMe">
+              <option value="">— brak —</option>
+              <option value="I work in business: due diligence, contracts, tenders and consulting." selected>Biznes / due diligence / przetargi</option>
+              <option value="I work in IT and product.">IT / produkt</option>
+              <option value="I am learning English for travel and everyday life.">Podróże / codzienność</option>
+            </select>
+          </label>
+        </div>
+        <p class="note" style="padding-block:10px 24px">Ustawienia, sesje i słówka zapisują się tylko w tej przeglądarce. Zrób kopię w zakładce Postępy, jeśli chcesz przenieść je na inne urządzenie.</p>
+      </div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section class="view" id="view-prog" hidden>
+      <div class="scroll">
+        <div class="stats" id="stats"></div>
+        <h2 class="section-h">Moje słówka i zwroty</h2>
+        <div class="words" id="words"></div>
+        <h2 class="section-h">Historia sesji</h2>
+        <div class="list" id="sessions"></div>
+        <div class="keyrow" style="padding-bottom:8px"><button class="btn" id="exportBtn">Pobierz kopię danych (JSON)</button><label class="btn" for="importFile" style="cursor:pointer">Wczytaj kopię</label><input type="file" id="importFile" accept="application/json" hidden></div>
+        <p class="note" id="storeNote" style="padding-bottom:24px">Dane są zapisane w tej przeglądarce.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="sheet-bg" id="sheetBg" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  // ---------- Scenarios ----------
+  const SCENARIOS = [
+    { id: "free", k: "Codziennie", pl: "Swobodna rozmowa", desc: "Luźna pogawędka o dniu, planach i zainteresowaniach.",
+      role: "a friendly English conversation partner having a casual chat about the learner's day, plans, work and interests",
+      opener: "Hi! Great to see you. How has your day been so far?" },
+    { id: "interview", k: "Kariera", pl: "Rozmowa o pracę", desc: "Rekruter w międzynarodowej firmie zadaje typowe i trudne pytania.",
+      role: "a hiring manager at an international company interviewing the learner for a senior role related to their experience; ask one question at a time, including behavioural questions",
+      opener: "Thanks for coming in today. Let's start simple: could you tell me a little about yourself and your current role?" },
+    { id: "meeting", k: "Biznes", pl: "Spotkanie projektowe", desc: "Status projektu, ryzyka, terminy i kolejne kroki.",
+      role: "a colleague running a weekly project status meeting; ask about progress, risks, deadlines and next steps",
+      opener: "Morning! Before we dive into the agenda, how is your part of the project going?" },
+    { id: "dd", k: "Biznes", pl: "Wyniki due diligence", desc: "Prezentujesz ustalenia inwestorowi, który dopytuje o ryzyka.",
+      role: "a cautious investor who receives the learner's due diligence findings about a target company and asks probing questions about risks, red flags and valuation",
+      opener: "I've had a quick look at your report. Before we go into details, what's the single biggest risk you found in this company?" },
+    { id: "negotiation", k: "Biznes", pl: "Negocjacje z dostawcą", desc: "Cena, warunki płatności, terminy dostaw.",
+      role: "a supplier's sales manager negotiating price, payment terms and delivery dates with the learner; push back politely",
+      opener: "Thanks for taking the call. I've reviewed your proposal, but the price you're asking for is lower than we can accept. Where do you see room to move?" },
+    { id: "smalltalk", k: "Networking", pl: "Small talk na konferencji", desc: "Poznajesz kogoś przy kawie podczas przerwy.",
+      role: "a friendly attendee at an industry conference making small talk during a coffee break",
+      opener: "Hi there, mind if I join you? Is this your first time at this conference?" },
+    { id: "restaurant", k: "Podróże", pl: "W restauracji", desc: "Zamawianie, pytania o menu, reklamacja.",
+      role: "a waiter in a London restaurant; take the order, answer questions about the menu, handle requests",
+      opener: "Good evening, welcome! Do you have a reservation, or would you like a table for now?" },
+    { id: "airport", k: "Podróże", pl: "Lotnisko", desc: "Odprawa, bagaż, opóźniony lot.",
+      role: "an airline check-in agent; later reveal the flight is delayed and help rebook",
+      opener: "Hello, where are you flying to today? Could I see your passport, please?" },
+    { id: "doctor", k: "Codziennie", pl: "U lekarza", desc: "Opisywanie objawów i rozumienie zaleceń.",
+      role: "a GP asking about the learner's symptoms and giving advice",
+      opener: "Hello, please have a seat. What seems to be the problem today?" },
+    { id: "debate", k: "Płynność", pl: "Opinie i dyskusja", desc: "Bronisz swojego zdania w kontrowersyjnym temacie.",
+      role: "a debate partner who asks for the learner's opinion on current topics and politely challenges it with counter-arguments",
+      opener: "Here's one for you: do you think remote work is better than working in an office? Why?" },
+  ];
+
+  // ---------- Settings (per browser) ----------
+  const LS = {
+    get(k, d) { try { const v = localStorage.getItem("sr:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("sr:" + k, JSON.stringify(v)); } catch {} },
+  };
+  const settings = Object.assign({ level: "B2", voice: "", rate: 1, corr: "main", about: "I work in business: due diligence, contracts, tenders and consulting.", autoSpeak: true, autoSend: true, scenario: "free", custom: "" }, LS.get("settings", {}));
+  const saveSettings = () => LS.set("settings", settings);
+
+  // ---------- Browser adapters (Anthropic API, Web Speech) ----------
+  let sample = null, dict = null, tts = null, store = null;
+  const API_KEY = () => LS.get("apiKey", "");
+  const MODEL = (tier) => tier === "quick" ? (settings.modelFast || "claude-haiku-5-5") : (settings.modelSmart || "claude-sonnet-5-5");
+  function toMessages(input) {
+    const arr = typeof input === "string" ? [{ role: "user", content: input }] : input;
+    const out = [];
+    for (const m of arr) {
+      const last = out[out.length - 1];
+      if (last && last.role === m.role) last.content += "\n\n" + m.content; else out.push({ role: m.role, content: m.content });
+    }
+    if (out.length && out[0].role !== "user") out.unshift({ role: "user", content: "(start)" });
+    return out;
+  }
+  async function callClaude(input, opts = {}, wantJson = false) {
+    const key = API_KEY();
+    if (!key) throw { code: "no_key" };
+    const messages = toMessages(input);
+    if (wantJson) messages[messages.length - 1].content += "\n\nReply with only valid JSON, no other text.";
+    let res;
+    try {
+      res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model: MODEL(opts.modelTier), max_tokens: 1500, messages }),
+      });
+    } catch { throw { code: "network" }; }
+    if (!res.ok) {
+      const code = res.status === 401 ? "bad_key" : res.status === 429 ? "rate_limited" : res.status === 529 ? "overloaded" : "http_" + res.status;
+      let msg = ""; try { msg = (await res.json()).error.message; } catch {}
+      throw { code, message: msg };
+    }
+    const data = await res.json();
+    return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  }
+  function parseJson(text) {
+    const t = text.trim();
+    try { return JSON.parse(t); } catch {}
+    const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (fence) { try { return JSON.parse(fence[1]); } catch {} }
+    const a = t.search(/[\[{]/), b = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
+    if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch {} }
+    throw { code: "invalid_json", text };
+  }
+  sample = async (input, opts) => ({ text: await callClaude(input, opts) });
+  sample.json = async (input, opts) => parseJson(await callClaude(input, opts, true));
+
+  // Speech out: browser speechSynthesis
+  if ("speechSynthesis" in window) {
+    tts = {
+      speak(text, o = {}) {
+        return new Promise((resolve, reject) => {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = "en-US"; u.rate = o.rate || 1;
+          const v = speechSynthesis.getVoices().find(x => x.voiceURI === o.voice);
+          if (v) { u.voice = v; u.lang = v.lang; }
+          u.onend = () => resolve({}); u.onerror = (e) => (e.error === "interrupted" || e.error === "canceled") ? resolve({}) : reject({ code: e.error });
+          speechSynthesis.speak(u);
+        });
+      },
+      async stop() { speechSynthesis.cancel(); },
+    };
+  }
+  function fillVoices() {
+    if (!tts) return;
+    const sel = $("#voiceSel");
+    const vs = speechSynthesis.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
+    vs.sort((a, b) => (b.localService === false) - (a.localService === false) || a.lang.localeCompare(b.lang));
+    sel.replaceChildren(new Option("Domyślny angielski", ""), ...vs.map(v => new Option(`${v.name} (${v.lang})`, v.voiceURI)));
+    sel.value = settings.voice || "";
+  }
+
+  // Speech in: Web Speech API recognition
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    const h = { partial: [], final: [], state: [] };
+    const emit = (k, v) => h[k].forEach(f => f(v));
+    let rec = null;
+    dict = {
+      start() {
+        return new Promise((resolve, reject) => {
+          rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.continuous = true;
+          rec.onstart = () => { emit("state", { state: "listening" }); resolve(); };
+          rec.onresult = (e) => {
+            let interim = "";
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              const r = e.results[i];
+              if (r.isFinal) emit("final", { text: r[0].transcript }); else interim += r[0].transcript;
+            }
+            emit("partial", { text: interim });
+          };
+          rec.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed") reject({ code: "not_granted" }); else if (e.error !== "no-speech" && e.error !== "aborted") reject({ code: e.error }); };
+          rec.onend = () => { rec = null; emit("state", { state: "idle", reason: "stopped" }); };
+          try { rec.start(); } catch (err) { reject({ code: "unavailable" }); }
+        });
+      },
+      async stop() { if (rec) rec.stop(); },
+      onPartial(f) { h.partial.push(f); }, onFinal(f) { h.final.push(f); }, onState(f) { h.state.push(f); },
+    };
+  }
+  const status = (t, isErr) => { const s = $("#status"); s.textContent = t || ""; s.classList.toggle("err", !!isErr); };
+  const errCopy = (e) => ({
+    no_key: "Wpisz klucz Anthropic API w zakładce Scenariusze → Połączenie z Claude.",
+    bad_key: "Klucz API jest nieprawidłowy. Sprawdź go w zakładce Scenariusze.",
+    network: "Brak połączenia z API Anthropic. Sprawdź internet.",
+    overloaded: "Serwery Claude są przeciążone. Spróbuj za chwilę.",
+    rate_limited: "Za dużo zapytań naraz. Odczekaj chwilę i spróbuj ponownie.",
+    cancelled: "Przerwano.",
+    invalid_json: "Tutor odpowiedział w nieoczekiwanym formacie. Wyślij wiadomość jeszcze raz.",
+  }[e && e.code] || "Coś poszło nie tak (" + ((e && e.code) || "błąd") + "). Spróbuj ponownie.");
+
+  // ---------- Conversation state ----------
+  let turns = [];          // what the model sees: {role, content}
+  let msgs = [];           // UI messages
+  let startedAt = null, words = 0, busy = false, timerId = null;
+  const scenario = () => settings.scenario === "custom"
+    ? { id: "custom", pl: "Własny scenariusz", role: settings.custom, opener: null }
+    : (SCENARIOS.find(s => s.id === settings.scenario) || SCENARIOS[0]);
+
+  function rules() {
+    const sc = scenario();
+    const corrRule = settings.corr === "off"
+      ? 'Do not correct mistakes: always return "corrections": [] and "better_version": "".'
+      : settings.corr === "all"
+        ? "List every grammar, vocabulary and naturalness mistake in the learner's LAST message (max 4)."
+        : "List only the important grammar or vocabulary mistakes in the learner's LAST message (max 2); ignore tiny slips.";
+    return [
+      `You are a warm, encouraging English speaking coach for a Polish native speaker at CEFR level ${settings.level}.`,
+      `Role-play: you are ${sc.role}. Stay in this role.`,
+      settings.about ? `About the learner: ${settings.about}` : "",
+      `Reply in 1-3 short spoken-style sentences (max 45 words) with vocabulary suited to ${settings.level}, and end with a question or prompt that makes the learner speak more. Never lecture.`,
+      "The learner's messages come from speech recognition: ignore punctuation, capitalisation and obvious transcription glitches.",
+      "If the learner writes in Polish or asks how to say something, give the English phrase briefly and invite them to use it.",
+      corrRule,
+      'Reply with ONLY a JSON object: {"reply": string, "corrections": [{"original": exact words from the learner, "better": corrected words, "why": very short explanation in Polish}], "better_version": a natural native-like version of the learner\'s whole last message, or "" if it was already natural, "new_word": {"word": a useful word or phrase for this topic at the learner\'s level, "meaning_pl": Polish meaning, "example": short English example} or null}.',
+      'Example: {"reply":"Oh nice! What did you enjoy most about it?","corrections":[{"original":"I was in cinema","better":"I went to the cinema","why":"Z miejscami używamy \\"go to the\\"."}],"better_version":"I went to the cinema yesterday.","new_word":{"word":"gripping","meaning_pl":"trzymający w napięciu","example":"The film was really gripping."}}',
+    ].filter(Boolean).join("\n");
+  }
+
+  // ---------- Rendering ----------
+  const thread = $("#thread"), scrollBox = $("#threadScroll");
+  const scrollDown = () => requestAnimationFrame(() => { scrollBox.scrollTop = scrollBox.scrollHeight; });
+
+  function renderMsg(m) {
+    const wrap = el("div", "msg " + m.role);
+    wrap.append(el("div", "who", m.role === "tutor" ? "Tutor" : "Ty"));
+    const b = el("div", "bubble" + (m.thinking ? " thinking" : ""), m.text);
+    wrap.append(b);
+    if (m.role === "tutor" && !m.thinking) {
+      const tools = el("div", "tools");
+      const sp = el("button", null, "🔊 Odsłuchaj"); sp.onclick = () => speak(m.text);
+      const tr = el("button", null, m.pl && m.showPl ? "Ukryj tłumaczenie" : "🇵🇱 Przetłumacz");
+      tr.onclick = () => translate(m);
+      tools.append(sp, tr);
+      wrap.append(tools);
+      if (m.pl && m.showPl) wrap.append(el("div", "pl", m.pl));
+    }
+    if (m.role === "me" && m.fb) wrap.append(renderFeedback(m.fb));
+    if (m.hints) {
+      const h = el("div", "hints");
+      h.append(el("div", "who", "Możesz powiedzieć na przykład"));
+      m.hints.forEach(t => { const bt = el("button", null, t); bt.onclick = () => { const i = $("#input"); i.value = t; autoGrow(); i.focus(); }; h.append(bt); });
+      wrap.append(h);
+    }
+    m.node = wrap;
+    return wrap;
+  }
+  function renderFeedback(fb) {
+    const box = el("div", "feedback");
+    const corr = Array.isArray(fb.corrections) ? fb.corrections.filter(c => c && c.original && c.better) : [];
+    if (!corr.length && !fb.better_version) {
+      box.append(el("div", "okline", "✓ Poprawnie i naturalnie"));
+    } else {
+      if (corr.length) {
+        box.append(el("div", "label", "Poprawki"));
+        corr.forEach(c => {
+          const r = el("div", "corr"), p = el("div", "pair");
+          p.append(el("del", null, c.original), el("span", null, "→"), el("ins", null, c.better));
+          r.append(p); if (c.why) r.append(el("div", "why", c.why));
+          box.append(r);
+        });
+      }
+      if (fb.better_version) {
+        box.append(el("div", "label", "Brzmiałoby naturalniej"));
+        const bv = el("div", "better", fb.better_version);
+        const t = el("div", "tools"); const sp = el("button", null, "🔊 Odsłuchaj"); sp.onclick = () => speak(fb.better_version); t.append(sp);
+        box.append(bv, t);
+      }
+    }
+    const nw = fb.new_word;
+    if (nw && nw.word) {
+      const d = el("div", "newword");
+      d.append(el("b", null, nw.word), document.createTextNode(" — " + (nw.meaning_pl || "")));
+      if (nw.example) { d.append(el("br")); d.append(el("i", null, nw.example)); }
+      box.append(d);
+    }
+    return box;
+  }
+  function renderThread() {
+    thread.replaceChildren(...msgs.map(renderMsg));
+    scrollDown();
+  }
+  function replaceNode(m) { const old = m.node; const n = renderMsg(m); old ? old.replaceWith(n) : thread.append(n); }
+
+  function updateCounters() {
+    $("#wordCount").textContent = words + " słów";
+    if (!startedAt) { $("#timer").textContent = "00:00"; return; }
+    const s = Math.floor((Date.now() - startedAt) / 1000);
+    $("#timer").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  }
+
+  function resetSession() {
+    const sc = scenario();
+    const opener = sc.opener || "Let's start this scenario. I'll play my part. Are you ready? Tell me how you'd like to begin.";
+    turns = [{ role: "assistant", content: opener }];
+    msgs = [{ role: "tutor", text: opener }];
+    startedAt = null; words = 0;
+    clearInterval(timerId); timerId = null;
+    $("#scenChip").textContent = sc.pl;
+    updateCounters(); renderThread(); status("");
+  }
+
+  // ---------- Talking to the tutor ----------
+  async function send(textArg) {
+    const text = (textArg ?? $("#input").value).trim();
+    if (!text || busy) return;
+    if (!API_KEY()) { status(errCopy({ code: "no_key" }), true); return; }
+    $("#input").value = ""; autoGrow(); $("#partial").textContent = "";
+    if (!startedAt) { startedAt = Date.now(); timerId = setInterval(updateCounters, 1000); }
+    words += text.split(/\s+/).filter(Boolean).length; updateCounters();
+    const me = { role: "me", text };
+    msgs.push(me); thread.append(renderMsg(me));
+    turns.push({ role: "user", content: text });
+    const think = { role: "tutor", text: "Tutor słucha…", thinking: true };
+    msgs.push(think); thread.append(renderMsg(think)); scrollDown();
+    busy = true; $("#sendBtn").disabled = true;
+    try {
+      const recent = turns.slice(-24);
+      const input = [{ role: "user", content: rules() + "\n\n(The conversation starts now. Your first line was already said.)" }, ...recent];
+      const res = await sample.json(input, { modelTier: "quick", cache: false });
+      const reply = (res && typeof res.reply === "string" && res.reply.trim()) || "Sorry, could you say that again?";
+      me.fb = { corrections: res.corrections || [], better_version: res.better_version || "", new_word: res.new_word || null };
+      replaceNode(me);
+      think.text = reply; think.thinking = false; replaceNode(think);
+      turns.push({ role: "assistant", content: reply });
+      if (me.fb.new_word && me.fb.new_word.word) saveWord(me.fb.new_word);
+      status("");
+      scrollDown();
+      if (settings.autoSpeak) speak(reply);
+    } catch (e) {
+      msgs = msgs.filter(m => m !== think); think.node && think.node.remove();
+      turns.pop(); // drop the failed user turn from model context, keep it on screen
+      status(errCopy(e), true);
+    } finally { busy = false; $("#sendBtn").disabled = false; }
+  }
+
+  async function translate(m) {
+    if (m.pl) { m.showPl = !m.showPl; replaceNode(m); return; }
+    if (!sample) return;
+    try {
+      const { text } = await sample("Translate into natural Polish. Reply with only the translation:\n\n" + m.text, { modelTier: "quick" });
+      m.pl = text.trim(); m.showPl = true; replaceNode(m);
+    } catch (e) { status(errCopy(e), true); }
+  }
+
+  async function hint() {
+    if (!sample || busy) return;
+    const last = [...turns].reverse().find(t => t.role === "assistant");
+    if (!last) return;
+    status("Szukam podpowiedzi…");
+    try {
+      const arr = await sample.json(`An English learner (CEFR ${settings.level}) must answer this line in a role-play where the other person is ${scenario().role}:\n"${last.content}"\n${settings.about ? "About the learner: " + settings.about + "\n" : ""}Reply with only a JSON array of 3 different short example answers (one simple, one medium, one more advanced), each a string.`, { modelTier: "quick", cache: false });
+      const hints = (Array.isArray(arr) ? arr : []).map(String).slice(0, 3);
+      const tutorMsg = [...msgs].reverse().find(m => m.role === "tutor" && !m.thinking);
+      if (tutorMsg && hints.length) { tutorMsg.hints = hints; replaceNode(tutorMsg); scrollDown(); }
+      status("");
+    } catch (e) { status(errCopy(e), true); }
+  }
+
+  // ---------- Voice out ----------
+  async function speak(text) {
+    if (!tts) return;
+    try { await tts.speak(text, { voice: settings.voice, rate: settings.rate, language: "en" }); }
+    catch (e) {
+      if (e && e.code === "not_granted") { tts = null; status("Odczyt na głos wyłączony w uprawnieniach."); }
+      else if (e && e.code === "busy") { /* dictating */ }
+    }
+  }
+
+  // ---------- Voice in ----------
+  const micBtn = $("#micBtn");
+  let listening = false, sendAfterStop = false;
+  function setMic(on) { listening = on; micBtn.classList.toggle("on", on); micBtn.setAttribute("aria-label", on ? "Zakończ mówienie" : "Mów"); }
+  micBtn.onclick = () => {
+    if (!dict) { status("Ta przeglądarka nie rozpoznaje mowy. Użyj Chrome, Edge lub Safari albo wpisz odpowiedź.", true); return; }
+    if (listening) {
+      sendAfterStop = settings.autoSend;
+      dict.stop().catch(() => {});
+      return;
+    }
+    const p = dict.start({ language: "en" });
+    if (tts) tts.stop().catch(() => {});
+    setMic(true); status("Słucham… mów po angielsku, kliknij ponownie, aby skończyć.");
+    p.catch((e) => {
+      setMic(false);
+      if (e && e.code === "not_granted") { status("Brak zgody na mikrofon. Możesz pisać.", true); }
+      else if (e && e.code !== "stopped") status("Nie udało się włączyć mikrofonu (" + (e && e.code) + ").", true);
+    });
+  };
+  function wireDictation() {
+    dict.onPartial(({ text }) => { $("#partial").textContent = text; });
+    dict.onFinal(({ text }) => {
+      const i = $("#input"); i.value = (i.value ? i.value.trimEnd() + " " : "") + text.trim(); autoGrow();
+      $("#partial").textContent = "";
+    });
+    dict.onState(({ state }) => {
+      if (state === "listening" || state === "starting") { setMic(true); return; }
+      if (state === "idle") {
+        setMic(false); status("");
+        if (sendAfterStop) { sendAfterStop = false; setTimeout(() => send(), 60); }
+      }
+    });
+  }
+
+  // ---------- Summary ----------
+  async function endSession() {
+    const mine = msgs.filter(m => m.role === "me");
+    if (!mine.length) { status("Najpierw powiedz coś tutorowi — wtedy będzie co ocenić."); return; }
+    if (!sample) return;
+    if (tts) tts.stop().catch(() => {});
+    openSheet(el("h2", null, "Analizuję rozmowę…"), el("p", "note", "To potrwa kilkanaście sekund."));
+    const transcript = msgs.filter(m => !m.thinking).map(m => (m.role === "me" ? "LEARNER: " : "TUTOR: ") + m.text).join("\n");
+    const allCorr = mine.flatMap(m => (m.fb && m.fb.corrections) || []);
+    const minutes = Math.max(1, Math.round((Date.now() - (startedAt || Date.now())) / 60000));
+    try {
+      const r = await sample.json(`You are an English examiner. Assess the LEARNER (Polish native, target level ${settings.level}) in this speaking practice transcript (speech-recognised, ignore punctuation).\n\n${transcript}\n\nReply with only JSON: {"fluency": 1-10, "grammar": 1-10, "vocabulary": 1-10, "estimated_level": "A2|B1|B2|C1|C2", "summary_pl": 2-3 sentences in Polish, "strengths_pl": [2-3 short points in Polish], "focus_pl": [2-3 concrete things to practise, in Polish], "phrases": [{"en": useful phrase for this situation, "pl": Polish meaning}] (4 items)}`, { cache: false });
+      const sess = {
+        kind: "session", at: Date.now(), scenario: scenario().pl, level: settings.level, minutes, words,
+        fluency: +r.fluency || 0, grammar: +r.grammar || 0, vocabulary: +r.vocabulary || 0,
+        estimated_level: String(r.estimated_level || ""), summary_pl: String(r.summary_pl || ""),
+        strengths_pl: (r.strengths_pl || []).map(String), focus_pl: (r.focus_pl || []).map(String),
+        corrections: allCorr.slice(0, 20).map(c => ({ original: String(c.original), better: String(c.better), why: String(c.why || "") })),
+        transcript: transcript.slice(0, 12000),
+      };
+      (r.phrases || []).forEach(p => p && p.en && saveWord({ word: p.en, meaning_pl: p.pl || "", example: "" }));
+      await saveSession(sess);
+      showSummary(sess, r.phrases || []);
+    } catch (e) {
+      openSheet(el("h2", null, "Nie udało się ocenić"), el("p", "err", errCopy(e)), actions([["Zamknij", closeSheet]]));
+    }
+  }
+  function actions(list) { const a = el("div", "actions"); list.forEach(([t, fn, pri]) => { const b = el("button", "btn" + (pri ? " primary" : ""), t); b.onclick = fn; a.append(b); }); return a; }
+  function openSheet(...nodes) { const s = $("#sheet"); s.replaceChildren(...nodes); $("#sheetBg").hidden = false; }
+  function closeSheet() { $("#sheetBg").hidden = true; }
+  $("#sheetBg").addEventListener("click", (e) => { if (e.target.id === "sheetBg") closeSheet(); });
+  function showSummary(s, phrases) {
+    const h = el("h2", null, "Twoja ocena"); h.id = "sheetTitle";
+    const meta = el("div", "note", `${s.scenario} · ${s.minutes} min · ${s.words} słów · szacowany poziom: ${s.estimated_level || "—"}`);
+    const sc = el("div", "scores");
+    [["Płynność", s.fluency], ["Gramatyka", s.grammar], ["Słownictwo", s.vocabulary]].forEach(([l, n]) => {
+      const d = el("div", "score"); const nn = el("div", "n", String(n)); nn.append(el("small", null, "/10")); d.append(nn, el("div", "l", l)); sc.append(d);
+    });
+    const parts = [h, meta, sc, el("p", null, s.summary_pl)];
+    const list = (title, arr) => { if (!arr.length) return; parts.push(el("b", null, title)); const ul = el("ul"); arr.forEach(t => ul.append(el("li", null, t))); parts.push(ul); };
+    list("Mocne strony", s.strengths_pl);
+    list("Nad czym popracować", s.focus_pl);
+    if (phrases.length) list("Przydatne zwroty (dodane do słówek)", phrases.map(p => p.en + " — " + (p.pl || "")));
+    parts.push(actions([["Zamknij", closeSheet], ["Nowa rozmowa", () => { closeSheet(); resetSession(); }, true]]));
+    openSheet(...parts);
+  }
+
+  // ---------- Storage (private db, falls back to this browser) ----------
+  let items = [];
+  const localStore = {
+    kind: "local",
+    all() { return LS.get("items", []); },
+    async put(id, data) { const a = this.all().filter(x => x.id !== id); a.push({ id, ...data }); LS.set("items", a); items = a; renderProgress(); },
+    async del(id) { const a = this.all().filter(x => x.id !== id); LS.set("items", a); items = a; renderProgress(); },
+  };
+  store = localStore; items = localStore.all();
+  const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "w";
+  function saveWord(w) {
+    const id = "w-" + slug(w.word);
+    if (items.some(x => x.id === id)) return;
+    store.put(id, { kind: "word", at: Date.now(), word: String(w.word), meaning_pl: String(w.meaning_pl || ""), example: String(w.example || "") }).catch(() => {});
+  }
+  function saveSession(s) { return store.put("s-" + s.at, s).catch(() => status("Nie udało się zapisać sesji.", true)); }
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify({ app: "speaking-room", exported: new Date().toISOString(), items: localStore.all() }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "speaking-room-" + new Date().toISOString().slice(0, 10) + ".json"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  async function importData(file) {
+    try {
+      const data = JSON.parse(await file.text());
+      const incoming = Array.isArray(data.items) ? data.items.filter(x => x && x.id && x.kind) : [];
+      const merged = localStore.all().filter(x => !incoming.some(n => n.id === x.id)).concat(incoming);
+      LS.set("items", merged); items = merged; renderProgress();
+      $("#storeNote").textContent = "Wczytano " + incoming.length + " pozycji z kopii.";
+    } catch { $("#storeNote").textContent = "To nie jest poprawny plik kopii Speaking Room."; }
+  }
+
+  // ---------- Progress view ----------
+  const fmtDate = (ts) => new Date(ts).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  function streak(sessions) {
+    const days = new Set(sessions.map(s => new Date(s.at).toDateString()));
+    let n = 0; const d = new Date();
+    if (!days.has(d.toDateString())) d.setDate(d.getDate() - 1);
+    while (days.has(d.toDateString())) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  function renderProgress() {
+    const sessions = items.filter(i => i.kind === "session").sort((a, b) => b.at - a.at);
+    const wordsList = items.filter(i => i.kind === "word").sort((a, b) => b.at - a.at);
+    const stats = $("#stats"); stats.replaceChildren();
+    [[sessions.length, "sesji"], [sessions.reduce((a, s) => a + (s.minutes || 0), 0), "minut mówienia"],
+     [sessions.reduce((a, s) => a + (s.words || 0), 0), "wypowiedzianych słów"], [streak(sessions), "dni z rzędu"]]
+      .forEach(([n, l]) => { const d = el("div", "stat"); d.append(el("div", "n", String(n)), el("div", "l", l)); stats.append(d); });
+
+    const wbox = $("#words"); wbox.replaceChildren();
+    if (!wordsList.length) wbox.append(el("div", "empty", "Słówka i zwroty z rozmów pojawią się tutaj automatycznie."));
+    wordsList.forEach(w => {
+      const c = el("div", "word"), top = el("div", "w");
+      top.append(el("b", null, w.word));
+      const t = el("span"); const sp = el("button", "iconbtn", "🔊"); sp.title = "Odsłuchaj"; sp.onclick = () => speak(w.word + (w.example ? ". " + w.example : ""));
+      const rm = el("button", "iconbtn", "✕"); rm.title = "Usuń"; rm.onclick = () => store.del(w.id).catch(() => {});
+      t.append(sp, rm); top.append(t);
+      c.append(top, el("div", null, w.meaning_pl));
+      if (w.example) c.append(el("div", "ex", w.example));
+      wbox.append(c);
+    });
+
+    const sbox = $("#sessions"); sbox.replaceChildren();
+    if (!sessions.length) sbox.append(el("div", "empty", "Po zakończeniu rozmowy przyciskiem „Zakończ i oceń” zobaczysz tu ocenę i postęp."));
+    sessions.forEach(s => {
+      const r = el("div", "row"), head = el("div", "head");
+      head.append(el("b", null, s.scenario), el("span", "meta", `${fmtDate(s.at)} · ${s.minutes} min · ${s.words} słów · ${s.estimated_level || s.level}`));
+      const bars = el("div", "bars");
+      [["Płynność", s.fluency], ["Gramatyka", s.grammar], ["Słownictwo", s.vocabulary]].forEach(([l, n]) => {
+        const bar = el("div", "bar"), i = el("i"); i.style.width = Math.max(0, Math.min(10, n)) * 10 + "%"; bar.append(i);
+        bars.append(el("span", null, l), bar, el("span", "meta", n + "/10"));
+      });
+      r.append(head, bars);
+      if (s.summary_pl) r.append(el("div", "note", s.summary_pl));
+      const det = el("details", "sess"); det.append(el("summary", null, "Szczegóły: błędy i transkrypcja"));
+      if (s.focus_pl && s.focus_pl.length) { det.append(el("b", null, "Do poprawy")); const ul = el("ul"); s.focus_pl.forEach(t => ul.append(el("li", null, t))); det.append(ul); }
+      (s.corrections || []).forEach(c => { const cc = el("div", "corr"); const p = el("div", "pair"); p.append(el("del", null, c.original), el("span", null, "→"), el("ins", null, c.better)); cc.append(p); if (c.why) cc.append(el("div", "why", c.why)); det.append(cc); });
+      if (s.transcript) { const pre = el("div", "pl", s.transcript); pre.style.whiteSpace = "pre-wrap"; pre.style.marginTop = "8px"; det.append(pre); }
+      const rm = el("button", "iconbtn", "Usuń sesję"); rm.onclick = () => store.del(s.id).catch(() => {}); det.append(rm);
+      r.append(det);
+      sbox.append(r);
+    });
+  }
+
+  // ---------- Scenario view ----------
+  function renderScenarios() {
+    const g = $("#scenGrid"); g.replaceChildren();
+    SCENARIOS.forEach(s => {
+      const c = el("button", "card" + (settings.scenario === s.id ? " current" : ""));
+      c.append(el("span", "k", s.k), el("h3", null, s.pl), el("p", null, s.desc));
+      c.onclick = () => { settings.scenario = s.id; saveSettings(); resetSession(); renderScenarios(); showView("talk"); };
+      g.append(c);
+    });
+    $("#customScen").value = settings.custom || "";
+  }
+  $("#customGo").onclick = () => {
+    const v = $("#customScen").value.trim(); if (!v) return;
+    settings.scenario = "custom"; settings.custom = v; saveSettings(); resetSession(); renderScenarios(); showView("talk");
+  };
+
+  // ---------- Tabs & controls ----------
+  function showView(v) {
+    ["talk", "scen", "prog"].forEach(n => { $("#view-" + n).hidden = n !== v; });
+    document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === v)));
+    if (v === "talk") scrollDown();
+  }
+  document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => showView(b.dataset.view));
+
+  const input = $("#input");
+  function autoGrow() { input.style.height = "auto"; input.style.height = Math.min(140, input.scrollHeight) + "px"; }
+  input.addEventListener("input", autoGrow);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+  $("#sendBtn").onclick = () => send();
+  $("#hintBtn").onclick = hint;
+  $("#endBtn").onclick = endSession;
+  $("#restartBtn").onclick = () => { if (tts) tts.stop().catch(() => {}); resetSession(); };
+
+  $("#levelSel").value = settings.level;
+  $("#levelSel").onchange = (e) => { settings.level = e.target.value; saveSettings(); };
+  $("#apiKey").value = API_KEY();
+  $("#saveKey").onclick = () => { LS.set("apiKey", $("#apiKey").value.trim()); status(""); $("#saveKey").textContent = "Zapisano ✓"; setTimeout(() => $("#saveKey").textContent = "Zapisz klucz", 1500); updateBanner(); };
+  $("#clearKey").onclick = () => { LS.set("apiKey", ""); $("#apiKey").value = ""; updateBanner(); };
+  $("#modelFast").value = settings.modelFast || "claude-haiku-5-5"; $("#modelFast").onchange = (e) => { settings.modelFast = e.target.value; saveSettings(); };
+  $("#modelSmart").value = settings.modelSmart || "claude-sonnet-5-5"; $("#modelSmart").onchange = (e) => { settings.modelSmart = e.target.value; saveSettings(); };
+  $("#exportBtn").onclick = exportData;
+  $("#importFile").onchange = (e) => { const f = e.target.files[0]; if (f) importData(f); e.target.value = ""; };
+  function updateBanner() {
+    let b = $("#keyBanner");
+    if (API_KEY()) { if (b) b.remove(); return; }
+    if (b) return;
+    b = el("div", "banner"); b.id = "keyBanner";
+    b.append(document.createTextNode("Aby rozmawiać z tutorem, dodaj swój klucz Anthropic API. "));
+    const go = el("button", "btn", "Dodaj klucz"); go.onclick = () => { showView("scen"); $("#apiKey").focus(); };
+    b.append(go);
+    $("#view-talk").insertBefore(b, $("#threadScroll"));
+  }
+  $("#voiceSel").value = settings.voice;
+  $("#voiceSel").onchange = (e) => { settings.voice = e.target.value; saveSettings(); speak("Hi! This is how I sound."); };
+  $("#rateSel").value = settings.rate; $("#rateVal").textContent = Number(settings.rate).toFixed(2) + "×";
+  $("#rateSel").oninput = (e) => { settings.rate = +e.target.value; $("#rateVal").textContent = settings.rate.toFixed(2) + "×"; saveSettings(); };
+  $("#corrSel").value = settings.corr; $("#corrSel").onchange = (e) => { settings.corr = e.target.value; saveSettings(); };
+  $("#aboutMe").value = settings.about; $("#aboutMe").onchange = (e) => { settings.about = e.target.value; saveSettings(); };
+  $("#autoSpeak").checked = settings.autoSpeak; $("#autoSpeak").onchange = (e) => { settings.autoSpeak = e.target.checked; saveSettings(); };
+  $("#autoSend").checked = settings.autoSend; $("#autoSend").onchange = (e) => { settings.autoSend = e.target.checked; saveSettings(); };
+
+  // ---------- Boot ----------
+  resetSession(); renderScenarios(); renderProgress();
+  updateBanner();
+  if (dict) wireDictation(); else micBtn.title = "Rozpoznawanie mowy niedostępne w tej przeglądarce — wpisz odpowiedź.";
+  if (tts) { fillVoices(); speechSynthesis.onvoiceschanged = fillVoices; } else { $("#autoSpeak").parentElement.hidden = true; }
+})();
+</script>
+</body>
+</html>
